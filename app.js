@@ -6,6 +6,8 @@ import {AmbientLight, PointLight, LightingEffect} from '@deck.gl/core';
 import DeckGL from '@deck.gl/react';
 import {PolygonLayer} from '@deck.gl/layers';
 import {TripsLayer} from '@deck.gl/geo-layers';
+import {PathLayer} from '@deck.gl/layers';
+import {IconLayer} from '@deck.gl/layers';
 
 // Set your mapbox token here
 const MAPBOX_TOKEN = "pk.eyJ1IjoiZXJpY2J1c2giLCJhIjoiY2thcXVzMGszMmJhZjMxcDY2Y2FrdXkwMSJ9.cwBqtbXpWJbtAEGli1AIIg"; // eslint-disable-line
@@ -16,7 +18,14 @@ const DATA_URL = {
   //  'https://raw.githubusercontent.com/visgl/deck.gl-data/master/examples/trips/buildings.json', // eslint-disable-line
   //TRIPS: 'https://raw.githubusercontent.com/visgl/deck.gl-data/master/examples/trips/trips-v7.json' // eslint-disable-line
   //TRIPS: 'https://raw.githubusercontent.com/ebaustria/coord_conversion/master/one_trace.json'
-  TRIPS: 'https://raw.githubusercontent.com/ebaustria/coord_conversion/master/one_trace_brazil.json'
+  ROUTES: 'https://raw.githubusercontent.com/ebaustria/coord_conversion/master/routes_brazil.json',
+  //ROUTES: 'https://raw.githubusercontent.com/ebaustria/coord_conversion/master/route1_brazil.json',
+  TRIPS: 'https://raw.githubusercontent.com/ebaustria/coord_conversion/master/one_trace_brazil.json',
+  STOPS: 'https://raw.githubusercontent.com/ebaustria/coord_conversion/master/single_stop_brazil.json'
+};
+
+const ICON_MAPPING = {
+  marker: {x: 0, y: 0, width: 128, height: 128, mask: true}
 };
 
 const ambientLight = new AmbientLight({
@@ -77,7 +86,7 @@ export default class App extends Component {
 
   _animate() {
     const {
-      loopLength = 90000, // unit corresponds to the timestamp in source data
+      loopLength = 604800, // unit corresponds to the timestamp in source data
       animationSpeed = 30 // unit time per second
     } = this.props;
     const timestamp = Date.now() / 1000;
@@ -91,9 +100,11 @@ export default class App extends Component {
 
   _renderLayers() {
     const {
+      stops = DATA_URL.STOPS,
+      routes = DATA_URL.ROUTES,
       buildings = DATA_URL.BUILDINGS,
       trips = DATA_URL.TRIPS,
-      trailLength = 180,
+      trailLength = 720,
       theme = DEFAULT_THEME
     } = this.props;
 
@@ -106,13 +117,24 @@ export default class App extends Component {
         stroked: false,
         getFillColor: [0, 0, 0, 0]
       }),
+      new PathLayer({
+        id: 'routes',
+        data: routes,
+        pickable: true,
+        widthScale: 20,
+        widthMinPixels: 1,
+        getPath: e => e.path,
+        getColor: e => [0, 255, 0], //colorToRGBArray(d.color),
+        opacity: 0.2,
+        getWidth: e => 1
+      }),
       new TripsLayer({
         id: 'trips',
         data: trips,
         getPath: d => d.path,
         getTimestamps: d => d.timestamps,
         getColor: d => (d.vendor === 0 ? theme.trailColor0 : theme.trailColor1),
-        opacity: 0.3,
+        opacity: 0.5,
         widthMinPixels: 2,
         rounded: true,
         trailLength,
@@ -130,6 +152,19 @@ export default class App extends Component {
         getElevation: f => f.height,
         getFillColor: theme.buildingColor,
         material: theme.material
+      }),
+      new IconLayer({
+        id: 'stops',
+        data: stops,
+        pickable: true,
+        iconAtlas: 'https://raw.githubusercontent.com/visgl/deck.gl-data/master/website/icon-atlas.png',
+        iconMapping: ICON_MAPPING,
+        getIcon: g => 'marker',
+
+        sizeScale: 15,
+        getPosition: g => g.coordinates,
+        getSize: g => 3,
+        getColor: g => [255, 0, 0]
       })
     ];
   }
